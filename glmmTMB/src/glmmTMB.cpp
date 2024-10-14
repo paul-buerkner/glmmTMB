@@ -51,7 +51,7 @@ bool trunc_Family(int family) {
 	  family == truncated_compois_family ||
 	  family == truncated_nbinom1_family ||
 	  family == truncated_nbinom2_family);
-  
+
 }
 
 enum valid_link {
@@ -99,13 +99,14 @@ enum valid_simCode {
   fix_simcode = 1,
   random_simcode = 2
 };
-  
+
 // codes for prior distributions
 enum valid_prior {
   // real-valued
   normal_prior = 0,
   t_prior = 1,
   cauchy_prior = 2,
+  lasso_prior = 3,
   // non-negative
   gamma_prior = 10,
   // (0,1), e.g. for zi prob
@@ -150,7 +151,7 @@ Type inverse_linkfun(Type eta, int link) {
     ans = eta*eta; // pow(eta, Type(2)) doesn't work ... ?
     break;
   case lambertW_link:
-    // for Bell distribution: mean = theta*exp(theta), theta 
+    // for Bell distribution: mean = theta*exp(theta), theta
     ans = exp(eta)*exp(exp(eta));
     break;
 
@@ -299,7 +300,7 @@ struct terms_t : vector<per_term_info<Type> > {
 
 
 // compute log-likelihood of b (conditional modes) conditional on theta (var/cov)
-//  for a specified random-effects term 
+//  for a specified random-effects term
 template <class Type>
 Type termwise_nll(array<Type> &U, vector<Type> theta, per_term_info<Type>& term, bool do_simulate = false) {
   Type ans = 0;
@@ -340,7 +341,7 @@ Type termwise_nll(array<Type> &U, vector<Type> theta, per_term_info<Type>& term,
 		Rf_error("simcode not yet implemented for homdiag cov struct");
 	      }
 	      U(j,i) = rnorm(Type(0), sd);
-	    }	      
+	    }
 	  }
     }
     int n = term.blockSize;
@@ -348,7 +349,7 @@ Type termwise_nll(array<Type> &U, vector<Type> theta, per_term_info<Type>& term,
     for(int i = 0; i < n; i++) {
       sdvec(i) = sd;
     }
-    
+
     term.sd = sdvec; // For report
   }
 
@@ -377,7 +378,7 @@ Type termwise_nll(array<Type> &U, vector<Type> theta, per_term_info<Type>& term,
           break;
         default: error ("unknown simcode");
         } // simcode
-        
+
       }
     }
     term.corr = nldens.cov(); // For report
@@ -444,7 +445,7 @@ Type termwise_nll(array<Type> &U, vector<Type> theta, per_term_info<Type>& term,
     Type corr_transf = theta(1);
     Type phi = corr_transf / sqrt(1.0 + pow(corr_transf, 2));
     Type sd = exp(logsd);
-    
+
     for(int j = 0; j < term.blockReps; j++){
        for(int i=1; i<n; i++){
           //Type phi = corr_transf / sqrt(1.0 + pow(corr_transf, 2));
@@ -471,8 +472,8 @@ Type termwise_nll(array<Type> &U, vector<Type> theta, per_term_info<Type>& term,
            }
       } // do_simulate
   }
-  
-  
+
+
     // For consistency with output for other structs we report entire
     // covariance matrix.
     if(isDouble<Type>::value) { // Disable AD for this part
@@ -521,7 +522,7 @@ Type termwise_nll(array<Type> &U, vector<Type> theta, per_term_info<Type>& term,
         default: error ("unknown simcode");
         }
       } // do_simulate
-      
+
     }
     // For consistency with output for other structs we report entire
     // covariance matrix.
@@ -722,7 +723,7 @@ Type objective_function<Type>::operator() ()
 
   // Define covariance structure for the dispersion model
   DATA_STRUCT(termsdisp, terms_t);
-  
+
   // Parameters related to design matrices
   PARAMETER_VECTOR(beta);
   PARAMETER_VECTOR(betazi);
@@ -730,12 +731,12 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(b);
   PARAMETER_VECTOR(bzi);
   PARAMETER_VECTOR(bdisp);
-  
+
   // Joint vector of covariance parameters
   PARAMETER_VECTOR(theta);
   PARAMETER_VECTOR(thetazi);
   PARAMETER_VECTOR(thetadisp);
-  
+
   // Extra family specific parameters
   // tweedie, t, ordbetareg, nbinom12, skewnormal;
   // see .extraParamFamilies in R code for expected length
@@ -762,7 +763,7 @@ Type objective_function<Type>::operator() ()
   DATA_IVECTOR(prior_elend);      // ending element index
   DATA_IVECTOR(prior_npar);       // number of parameters (based on prior distrib)
   DATA_VECTOR(prior_params);      // specify parameters (concatenated)
-  
+
   // Joint negative log-likelihood
   Type jnll=0;
 
@@ -776,7 +777,7 @@ Type objective_function<Type>::operator() ()
   //   if (b(i)==0) nz++; else nnz++;
   // }
   // printf("b nz = %d, nnz = %d\n", nz, nnz);
-  
+
   // Linear predictor
   vector<Type> eta = Z * b + offset;
   if (!sparseX) {
@@ -1034,7 +1035,7 @@ Type objective_function<Type>::operator() ()
       case bell_family:
 	// unfortunately need to back-transform from mu to underlying theta via Lambert W ...
 
-	// see https://stackoverflow.com/questions/92396/why-cant-variables-be-declared-in-a-switch-statement for {} 
+	// see https://stackoverflow.com/questions/92396/why-cant-variables-be-declared-in-a-switch-statement for {}
 	{
 	  Type btheta;
 	  btheta = glmmtmb::LambertW(mu(i));
@@ -1116,26 +1117,32 @@ Type objective_function<Type>::operator() ()
 	  parval = (parval - s1)/s2;   // scale value
 	  // see note at t_family about adjusting density for scaling
 	  logpriorval = dt(parval, s3, true) - log(s2);
-	  break;
+	break;
 	case cauchy_prior:
 	  s1 = prior_params[par_ind];           // loc
 	  s2 = prior_params[par_ind+1];         // scale
 	  logpriorval = glmmtmb::dcauchy(parval, s1, s2, true);
 	break;
+	case lasso_prior:
+	  s1 = prior_params[par_ind];           // loc
+	  s2 = prior_params[par_ind+1];       // penalty lambda
+	  s3 = prior_params[par_ind+2];          // smoothness constant c
+	  logpriorval = glmmtmb::dlasso(parval, s1, s2, s3, true);
+	 break;
 	default:
 	  error("Prior distribution not implemented!");
 	}
 
 	jnll -= logpriorval;
-	
+
 	} // loop over elements
       }
       // step forward in prior-parameter vector
       par_ind += prior_npar[i];
-      
+
     } // loop over priors
-    
-    
+
+
 
   // Report / ADreport / Simulate Report
   vector<matrix<Type> > corr(terms.size());
