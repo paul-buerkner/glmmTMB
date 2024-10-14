@@ -62,6 +62,7 @@
   normal = 0,
   t = 1,
   cauchy = 2,
+  lasso = 3,
   gamma = 10,
   beta = 20,
   lkj = 30

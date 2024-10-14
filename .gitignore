@@ -41,3 +41,7 @@ glmmTMB/.gitsum
 *.tgz
 *.zip
 *.dll
+*.DS_Store
+
+own_tests/
+

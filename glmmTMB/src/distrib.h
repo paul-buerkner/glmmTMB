@@ -2,7 +2,7 @@
 #include <vector> // for vectors in Bell()
 
 namespace glmmtmb{
-	
+
   /* Not used anymore: */
   template<class Type>
   Type dbetabinom(Type y, Type a, Type b, Type n, int give_log=0)
@@ -59,7 +59,7 @@ namespace glmmtmb{
     if(!give_log) return exp(logres);
     else return logres;
   }
-	
+
   template<class Type>
   Type dgenpois(Type y, Type theta, Type lambda, int give_log=0)
   {
@@ -77,20 +77,20 @@ namespace glmmtmb{
   template<class Type>
   Type dskewnorm(Type y, Type mu, Type sigma, Type alpha, int give_log=0)
   {
-    Type delta = alpha/sqrt(1 + pow(alpha, 2)); 
-    Type omega = sigma/sqrt(1 - 2/M_PI * pow(delta, 2)); 
-    Type xi = mu - omega * delta * sqrt(2/M_PI); 
-    Type logres = 
+    Type delta = alpha/sqrt(1 + pow(alpha, 2));
+    Type omega = sigma/sqrt(1 - 2/M_PI * pow(delta, 2));
+    Type xi = mu - omega * delta * sqrt(2/M_PI);
+    Type logres =
       log(2.0) - log(omega) + log(dnorm((y - xi)/omega, Type(0), Type(1), 0)) + log(pnorm(alpha * (y - xi)/omega));
     if(!give_log) return exp(logres);
     else return logres;
   }
-  
+
    // from C. Geyer aster package, src/raster.c l. 175
    // Simulate from truncated poisson
    // see https://cran.r-project.org/web/packages/aster/vignettes/trunc.pdf for technical/mathematical details
    // k is the truncation point (e.g. k=0 -> 0-truncated)
-   // MODIFICATIONS: change die() to throw std::range_error() 
+   // MODIFICATIONS: change die() to throw std::range_error()
    double rtruncated_poisson(int k, double mu)
    {
     int m;
@@ -180,7 +180,7 @@ namespace glmmtmb{
     }
     return ans;
   }
-	
+
   /* Simulate from zero-truncated generalized poisson distribution */
   template<class Type>
   Type rtruncated_genpois(Type theta, Type lambda) {
@@ -305,15 +305,15 @@ namespace glmmtmb{
   template<class Type>
   Type rskewnorm(Type mu, Type sigma, Type alpha) {
     // Copied from R function sn::rsn
-    Type delta = alpha/sqrt(1 + pow(alpha, 2)); 
-    Type omega = sigma/sqrt(1 - 2/M_PI * pow(delta, 2)); 
-    Type xi = mu - omega * delta * sqrt(2/M_PI); 
-    
+    Type delta = alpha/sqrt(1 + pow(alpha, 2));
+    Type omega = sigma/sqrt(1 - 2/M_PI * pow(delta, 2));
+    Type xi = mu - omega * delta * sqrt(2/M_PI);
+
     Type chi = CppAD::abs(rnorm(Type(0), Type(1)));
     Type nrv = rnorm(Type(0), Type(1));
     Type z = delta * chi + sqrt(1 - pow(delta, 2)) * nrv;
     Type ans = xi + omega * z;
-    
+
     return ans;
   }
 
@@ -324,13 +324,13 @@ namespace glmmtmb{
 
     Type ans = 0;
     double dtheta = asDouble(theta);
-    
+
     double lambda = expm1(dtheta);
     int N = (int) asDouble(rpois(lambda));
     for (int i=0; i<N; i++) {
       ans +=  rtruncated_poisson(0, dtheta);
     }
-    
+
     return ans;
   }
 
@@ -345,11 +345,24 @@ namespace glmmtmb{
  }
   VECTORIZE4_ttti(dcauchy)
 
+  // does not include the normalizing constant yet
+  // because the integral becomes non-analytic for c != 0
+  // for model estimation we do not need this constant
+  // only for model comparison perhaps
+  template<class Type>
+  Type dlasso(Type x, Type loc, Type lambda, Type c, int give_log = 0)
+  {
+    Type resid = (x - loc);
+    Type log_res = -lambda * sqrt(resid*resid + c);
+    return ( give_log ? log_res : exp(log_res) );
+  }
+  VECTORIZE4_ttti(dlasso)
+
 // first few Bell numbers, from https://oeis.org/A000110: 1, 1, 2, 5, 15, 52, 203, 877, 4140, 21147, 115975, 678570, 4213597, 27644437, 190899322, 1382958545, 10480142147, 82864869804, 682076806159, 5832742205057, 51724158235372, 474869816156751, 4506715738447323, 44152005855084346, 445958869294805289, 4638590332229999353, 49631246523618756274
 // implement as lookup table?
 
   double Bell(int n) {
-  
+
     if ((n == 0) || (n == 1)) {
       return(1);
     }
@@ -383,7 +396,7 @@ namespace glmmtmb{
   // taken from TMB atomic functions example,
   //    https://kaskr.github.io/adcomp/AtomicFunctions.html
   // if we wanted/needed to speed this up we could make use of the implementation
-  // of Fukushima 2013 doi:10.1016/j.cam.2012.11.021 from 
+  // of Fukushima 2013 doi:10.1016/j.cam.2012.11.021 from
   //     https://github.com/DarkoVeberic/LambertW
 
   // Double version of Lambert W function
@@ -398,7 +411,7 @@ double LambertW(double x) {
   if (i == niter) Rf_warning("W: failed convergence");
   return y;
 }
-  
+
 TMB_ATOMIC_VECTOR_FUNCTION(
     // ATOMIC_NAME
     LambertW

@@ -19,7 +19,7 @@ from_prior_syn <- function(x) {
     if (!x %in% prior_synonyms) return(x)
     names(prior_synonyms)[match(x, prior_synonyms)]
 }
-    
+
 #' @noRd
 #' @param priors data frame with ...
 #' @param info additional info needed: list(fix = list(cond = , zi =, disp = )) [colnames of X matrices];
@@ -55,7 +55,7 @@ proc_priors <- function(priors, info = NULL) {
         pname <- gsub("\\(.*", "", pp) ## extract distribution name
         prior_distrib[i] <- .valid_prior[pname]
         if (is.na(prior_distrib[i])) stop("unknown prior distribution ",pname)
-        
+
         ## extract parameter values
         ## parse and drop expression()
         p_params <- parse(text = pp)[[1]]
@@ -113,7 +113,7 @@ proc_priors <- function(priors, info = NULL) {
                     ## (assume intercept is first column of model matrix ...)
                 }
             } else {
-                prior_elend[i] <- nthetavec[[match_names(cl, prefix = "theta")]][["..total"]] -1 
+                prior_elend[i] <- nthetavec[[match_names(cl, prefix = "theta")]][["..total"]] -1
             }
         } else {
             ## single numeric index (subtract 1 for R to C++ indexing shift)
@@ -167,7 +167,7 @@ proc_priors <- function(priors, info = NULL) {
                             prior_elstart[i] <- theta_start + nsd
                             prior_elend[i] <- theta_start + re_info[[w]]$blockNumTheta - 1
                         } else stop("unknown prior suffix ", suffix)
-                   } ## suffix specified 
+                   } ## suffix specified
                 } ## specified theta elements
             } ## specified elements
         } ## component specified
@@ -179,6 +179,7 @@ proc_priors <- function(priors, info = NULL) {
                                 cauchy =,
                                 beta = 2,
                                 t = 3,
+                                lasso = 3,
                                 lkj = 1,
                                 other = stop("unknown prior type")
                                 )
@@ -187,7 +188,7 @@ proc_priors <- function(priors, info = NULL) {
             stop(sprintf("incorrect number of parameters for prior %s distribution (%d, was expecting %d)",
               pname, np, prior_npar[i]))
         }
-        
+
     } ## loop over priors
     prior_params <- if (np == 0) numeric(0) else unlist(prior_params)
     ## FIXME: replace with mget() ?
@@ -198,7 +199,7 @@ proc_priors <- function(priors, info = NULL) {
 #'
 #' (EXPERIMENTAL/subject to change)
 #'
-#' \code{glmmTMB} can accept prior specifications, for doing maximum \emph{a posteriori} (MAP) estimation (or Hamiltonian MC with the \code{tmbstan} package), or (outside of a Bayesian framework) for the purposes of regularizing parameter estimates  
+#' \code{glmmTMB} can accept prior specifications, for doing maximum \emph{a posteriori} (MAP) estimation (or Hamiltonian MC with the \code{tmbstan} package), or (outside of a Bayesian framework) for the purposes of regularizing parameter estimates
 #'
 #' The \code{priors} argument to \code{glmmTMB} must (if not NULL) be a data frame with columns
 #' \describe{
@@ -234,7 +235,7 @@ proc_priors <- function(priors, info = NULL) {
 #' prior3 <- data.frame(prior = "t(0, 3, 3)",
 #'                      class = "fixef")
 #' update(g1, priors = prior3)
-#' 
+#'
 NULL
 
 
@@ -257,4 +258,4 @@ print.glmmTMB_prior <- function(x, compact = FALSE, ...) {
     if (compact) cat(paste(pstr, collapse = "; "), "\n")
     invisible(x)
 }
-             
+
