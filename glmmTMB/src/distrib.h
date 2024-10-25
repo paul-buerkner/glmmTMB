@@ -345,15 +345,15 @@ namespace glmmtmb{
  }
   VECTORIZE4_ttti(dcauchy)
 
-  // does not include the normalizing constant yet
-  // because the integral becomes non-analytic for c != 0
-  // for model estimation we do not need this constant
-  // only for model comparison perhaps
+  // the normalizing constant becomes non-analytic for c != 0
+  // hence, we always use the normalizing constant for c = 0
+  // since c is usually small, this should be accurate enough
+  // and for model estimation the constant is irrelevant anyway
   template<class Type>
   Type dlasso(Type x, Type loc, Type lambda, Type c, int give_log = 0)
   {
     Type resid = (x - loc);
-    Type log_res = -lambda * sqrt(resid*resid + c);
+    Type log_res = -lambda * sqrt(resid*resid + c) + log(lambda / 2.0);
     return ( give_log ? log_res : exp(log_res) );
   }
   VECTORIZE4_ttti(dlasso)

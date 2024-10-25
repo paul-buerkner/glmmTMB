@@ -1145,8 +1145,7 @@ Type objective_function<Type>::operator() ()
 	  s2 = prior_params[par_ind+1];       // penalty lambda
 	  s3 = prior_params[par_ind+2];          // smoothness constant c
 	  if (allow_autoscale_prior && prior_params[par_ind+3] > 0) {
-	    Type phi_mean = calc_mean(phi);
-	    s2 = s2 / (phi_mean * phi_mean);
+	    s2 = s2 / calc_mean(phi);
 	  };
 	  logpriorval = glmmtmb::dlasso(parval, s1, s2, s3, true);
 	break;
