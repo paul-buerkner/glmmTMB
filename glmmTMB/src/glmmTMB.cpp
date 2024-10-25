@@ -250,6 +250,20 @@ Type calc_log_nzprob(Type mu, Type phi, Type eta, Type etadisp, int family,
   return ans;
 }
 
+template<class Type>
+Type calc_sum(vector<Type> x) {
+  Type sum = 0;
+  for (int i=0; i < x.size(); i++) {
+    sum += x(i);
+  }
+  return sum;
+}
+
+template<class Type>
+Type calc_mean(vector<Type> x) {
+  return calc_sum(x) / x.size();
+}
+
 template <class Type>
 struct per_term_info {
   // Input from R
@@ -1075,6 +1089,9 @@ Type objective_function<Type>::operator() ()
     int np = prior_distrib.size();
     Type parval, logpriorval;
     int par_ind = 0; // parameter index
+    // auto-scaling the fixed effects is only possible in a few families
+    bool allow_autoscale_prior = family == gaussian_family;
+
     for (int i = 0; i < np; i++) {
       switch(prior_whichpar[i]) {
       case beta_vprior: parvec = beta; break;
@@ -1127,8 +1144,12 @@ Type objective_function<Type>::operator() ()
 	  s1 = prior_params[par_ind];           // loc
 	  s2 = prior_params[par_ind+1];       // penalty lambda
 	  s3 = prior_params[par_ind+2];          // smoothness constant c
+	  if (allow_autoscale_prior && prior_params[par_ind+3] > 0) {
+	    Type phi_mean = calc_mean(phi);
+	    s2 = s2 / (phi_mean * phi_mean);
+	  };
 	  logpriorval = glmmtmb::dlasso(parval, s1, s2, s3, true);
-	 break;
+	break;
 	default:
 	  error("Prior distribution not implemented!");
 	}

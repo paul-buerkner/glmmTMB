@@ -179,7 +179,7 @@ proc_priors <- function(priors, info = NULL) {
                                 cauchy =,
                                 beta = 2,
                                 t = 3,
-                                lasso = 3,
+                                lasso = 4,
                                 lkj = 1,
                                 other = stop("unknown prior type")
                                 )
